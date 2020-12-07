@@ -5,12 +5,14 @@
 import cv2
 import os
 import math
-import facebook
+import tweepy
 import functools
 import schedule
 import time
 import fnmatch
 import sys
+
+from twitterauth import *
 
 
 def catch_exceptions(cancel_on_failure=False):
@@ -65,21 +67,17 @@ def post():
             f.seek(0)
             totalFrames = str(f.readline())
 
+    auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+    auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
+    api = tweepy.API(auth)
     currentFrame = f'assets/frames/{dir[0]}'
     currentFrameNumber = str(int(dir[0][5:-4]))
     msg = f"Frame {currentFrameNumber} out of {str(totalFrames)}"
-    with open('assets/token.txt','r') as token:
-        accesstoken = token.readline()
-    graph = facebook.GraphAPI(accesstoken)
-    post_id = graph.put_photo(image=open(currentFrame, 'rb'),message = msg)['post_id']
+    api.update_with_media(currentFrame, status=f"Frame {currentFrameNumber} out of {str(totalFrames)}")
     print(f"Submitted post with title \"{msg}\" successfully!")
     os.remove(currentFrame)
 
 if __name__ == '__main__':
-    token = open('./assets/token.txt', 'r')
-    if token.readline() == "putyourtokenherexdd":
-        print("put your access token in assets/token.txt. you can obtain the access token from http://maxbots.ddns.net/token/")
-        sys.exit("error no token")
     ans = input("Extract Frames?(y/n) \n>")
     if 'y' in ans.lower():
         if os.path.exists("./assets/retain"):
@@ -87,7 +85,7 @@ if __name__ == '__main__':
         extractFrames()
     else:
         pass
-    schedule.every().hour.do(post).run()
+    schedule.every(10).minute.do(post).run()
 
     while 1:
         schedule.run_pending()
